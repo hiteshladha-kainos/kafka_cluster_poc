@@ -60,30 +60,57 @@ services:
     environment:
       CONTROL_CENTER_BOOTSTRAP_SERVERS: 'broker:29092'
       CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://karapace-registry:8081"
       CONTROL_CENTER_REPLICATION_FACTOR: 1
       CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
       CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
       CONFLUENT_METRICS_TOPIC_REPLICATION: 1
       PORT: 9021
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:latest
-    hostname: schema-registry
-    container_name: schema-registry
+  karapace-registry:
+    image: ghcr.io/aiven/karapace:develop
+    entrypoint:
+      - /bin/bash
+      - /opt/karapace/start.sh
+      - registry
     depends_on:
       - zookeeper
       - broker
     ports:
       - "8081:8081"
     environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "zookeeper:2181"
-      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
-      SCHEMA_REGISTRY_DEBUG: 'true'
-      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: '1'
-      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_SERVERS: PLAINTEXT://kafka:9092
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      KARAPACE_ADVERTISED_HOSTNAME: karapace-registry
+      KARAPACE_BOOTSTRAP_URI: broker:29092
+      KARAPACE_PORT: 8081
+      KARAPACE_HOST: 0.0.0.0
+      KARAPACE_CLIENT_ID: karapace
+      KARAPACE_GROUP_ID: karapace-registry
+      KARAPACE_MASTER_ELIGIBILITY: "true"
+      KARAPACE_TOPIC_NAME: _schemas
+      KARAPACE_LOG_LEVEL: WARNING
+      KARAPACE_COMPATIBILITY: FULL
+
+  karapace-rest:
+    image: ghcr.io/aiven/karapace:develop
+    entrypoint:
+      - /bin/bash
+      - /opt/karapace/start.sh
+      - rest
+    depends_on:
+      - broker
+      - karapace-registry
+    ports:
+      - "8082:8082"
+    environment:
+      KARAPACE_PORT: 8082
+      KARAPACE_HOST: 0.0.0.0
+      KARAPACE_ADVERTISED_HOSTNAME: karapace-rest
+      KARAPACE_BOOTSTRAP_URI: broker:29092
+      KARAPACE_REGISTRY_HOST: karapace-registry
+      KARAPACE_REGISTRY_PORT: 8081
+      KARAPACE_ADMIN_METADATA_MAX_AGE: 0
+      KARAPACE_LOG_LEVEL: WARNING
+
 
   connect:
     build: ./docker_files/connect
@@ -106,11 +133,15 @@ services:
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
       CONNECT_LOG4J_LOGGERS: org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=TRACE
+
       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
-      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: io.confluent.connect.protobuf.ProtobufConverter
+
+      #CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      #CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
     volumes:
-       - /home/cloud_user/repos/kafka-connect-mq-source/target/kafka-connect-rabbitmq-source-1.0-SNAPSHOT-jar-with-dependencies.jar:/usr/share/java/kafka-connect-rabbitmq-source-1.0-SNAPSHOT-jar-with-dependencies.jar
-       - /home/cloud_user/repos/kafka-cluster/rmq-connector-jar/confluentinc-kafka-connect-rabbitmq-1.7.3/lib/protobuf-java-3.19.4.jar:/usr/share/java/protobuf-java-3.19.4.jar
+       - /home/cloud_user/repos/kafka-cluster-poc/jar_files/ibm/kafka-connect-rabbitmq-source-1.0-SNAPSHOT-jar-with-dependencies.jar:/usr/share/java/kafka-connect-rabbitmq-source-1.0-SNAPSHOT-jar-with-dependencies.jar
+       - /home/cloud_user/repos/kafka-cluster-poc/jar_files/confluenctc/protobuf-java-3.19.4.jar:/usr/share/java/protobuf-java-3.19.4.jar
          #      - ~/.aws:/home/appuser/.aws:ro
 #      - /Users/konrad.paniec/Desktop/HelloFresh/kafka-connect-rabbitmq-source/target/kafka-connect-rabbitmq-source-1.0-SNAPSHOT-jar-with-dependencies.jar:/usr/share/java/kafka-connect-rabbitmq-source-1.0-SNAPSHOT-jar-with-dependencies.jar
 #      - /Users/konrad.paniec/Desktop/HelloFresh/json-to-map/target/json-value-to-key-1.0-SNAPSHOT-jar-with-dependencies.jar:/usr/share/java/transformers/json-value-to-key-1.0-SNAPSHOT-jar-with-dependencies.jar
