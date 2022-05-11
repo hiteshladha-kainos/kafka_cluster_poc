@@ -1,0 +1,24 @@
+#!/bin/bash
+curl -X POST \
+  http://localhost:8083/connectors \
+  -H 'Content-Type: application/json' \
+  -d '{ "name": "confluent_protobuf_converter",
+    "config":
+    {
+        "connector.class" : "io.confluent.connect.rabbitmq.RabbitMQSourceConnector",
+        "kafka.topic" : "zzsubscriptions_confluent_protobuf",
+        "rabbitmq.queue" : "us.customer.subscription.created",
+        "rabbitmq.username": "guest",
+        "rabbitmq.password": "guest",
+        "rabbitmq.host": "my-rabbit",
+        "rabbitmq.port": "5672",
+        "rabbitmq.virtual.host": "/",
+        "confluent.license":"",
+        "confluent.topic.bootstrap.servers":"broker:29092",
+        "confluent.topic.replication.factor":1,
+        "key.converter.schema.registry.url":"http://localhost:8081",
+        "value.converter":"io.confluent.connect.protobuf.ProtobufConverter",
+        "value.converter.schema.registry.url":"http://localhost:8081"
+    }
+}
+'
