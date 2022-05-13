@@ -6,8 +6,8 @@ curl -X POST \
     "config":
     {
       "connector.class":"io.confluent.connect.s3.S3SinkConnector",
-      "aws.access.key.id":"AKIASR5WOZP2KX6UUPOW",
-      "aws.secret.access.key":"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",
+      "aws.access.key.id":"xxxx",
+      "aws.secret.access.key":"xxxx",
       "s3.region":"us-east-1",
       "flush.size":10,
       "schema.compatibility":"NONE",
