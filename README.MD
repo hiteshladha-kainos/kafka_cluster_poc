@@ -55,7 +55,7 @@ Delete connectors:
 List connectors:
 `curl -X GET http://localhost:8083/connectors/`
 
-# If running on Kainos laptop, access may not be possible via localhost on port 8083, or docker container port 5005, therefore runt he nonnector scripts on the container:
+# If running on Kainos laptop, access may not be possible via localhost on port 8083, or docker container port 5005, therefore run the cononnector scripts on the container:
 `docker exec connect curl -X GET http://localhost:8083/connectors`
 `docker exec connect curl -X DELETE http://localhost:8083/connectors/<connector-name>`
 
